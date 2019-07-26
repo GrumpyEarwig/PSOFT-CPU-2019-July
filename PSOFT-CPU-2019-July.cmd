@@ -1,85 +1,86 @@
 
 REM ####################################################
-REM Set Common Variables
+REM Script to apply PSOFT CPU 2019 July
 REM ####################################################
+REM NOTE Expected Repository Structure
+REM ..\CPU-yyyy-mmm\Software\java\*.zip(s)
+REM ..\CPU-yyyy-mmm\Software\opatch\*.zip(s)
+REM ..\CPU-yyyy-mmm\Software\WLS\*.zip(s)
+REM ..\CPU-yyyy-mmm\Backups\*empty*
+REM ..\CPU-yyyy-mmm\Logs\*empty*
+
+REM ####################################################
+REM Initial Setup
+REM ####################################################
+
+set CPUFOLDER=CPU-2019-July
+set CPUREPOSITORY=\\am1hrap905\CedarTeam\30-Technical\95-Critical-Patch-Updates-CPUs\%CPUFOLDER%
+set CPUDIR=D:\psoft\patches\%CPUFOLDER%
+
+REM Copy down software from share (zip files only)
+ROBOCOPY /S /E %CPUREPOSITORY% %CPUDIR% *.zip
+
 set ORACLE_HOME=D:\psoft\oracle\weblogic
 set PS_HOME=D:\psoft\ps_home\pt85610
-set JKDDIR=D:\psoft\java\jdk
-set PATCHDIR=D:\psoft\patches\CPU-2019-July\software
+set JDKDIR=D:\psoft\java\jdk
+
+REM Pre Pend JDK and OPatch to Path
 set PATH=%ORACLE_HOME%\OPatch;%PATH%
-set PATH=%JKDDIR%\bin;%PATH%
+set PATH=%JDKDIR%\bin;%PATH%
 
 REM ####################################################
 REM List Current Software Versions
 REM ####################################################
+
 REM WebLogic
-REM set ORACLE_HOME=D:\psoft\oracle\weblogic
-REM set PATH=%ORACLE_HOME%\OPatch;%PATH%
 opatch version
 opatch lspatches
 REM opatch lsinventory -jre %JDKDIR%
+
 REM Java
-%JKDDIR%\bin\java -version
-%PS_HOME%\jre\bin\java -version
-
-
+java -version
+%JDKDIR%\bin\java -version
+%
 REM ####################################################
-REM Backup JAVA
+REM Patch JAVA
 REM ####################################################
-# Backup Directories
-${Env:CPU}           = 'CPU-2019-July'
-${Env:CPU_BKP_Dir}   = "D:/psoft/patches/${CPU}/backups"
-cmd /c robocopy /mir 
 
-rename-item -path ${Env:JRE} -NewName ${Env:JRE}-${Env:CPU_BKP_SFX}
+REM Change To Patch Directory and Unzip Patch
+cd /d %CPUDIR%\software\JDK
+%JDKDIR%\bin\jar.exe xvf p18143322_1800_MSWIN-x86-64.zip
 
+REM Archive Current Java
+set LOGFILE=%CPUDIR%\logs\java_robocopy.log"
+robocopy /l /mir /log+:%LOGFILE% %JDKDIR% %CPUDIR%\backups\java
+ren %JDKDIR% %JDKDIR%-delete-me
+
+REM Install JDK (and wait 180 seconds for install to complete)
+jdk-8u221-windows-x64.exe INSTALLDIR=%JDKDIR% /s /L %CPUDIR%\logs\jdk-8u221-windows-x64_install.log
+timeout 180
+
+REM Re-Check Version(s) (Should return build 1.8.0_221-b27)
+%JDKDIR%\bin\java -version
+PS_HOME%\jre\bin\java -version
 
 REM ####################################################
 REM Backup WEBLOGIC
 REM ####################################################
-$SRC_Dir  = 'D:\psoft\oracle\weblogic'
-$TGT_Dir  = "${CPU_BKP_Dir}/weblogic"
-$LOG_File = "${CPU_LOG_Dir}/weblogic_robocopy.log"
-
-robocopy /mir /log+:$LOG_File $SRC_Dir $TGT_Dir
+set LOGFILE=%CPUDIR%\logs\weblogic_robocopy.log"
+robocopy /mir /log+:%LOGFILE% %ORACLE_HOME% %CPUDIR%\backups\weblogic
 
 REM ####################################################
-REM Patch JAVA
+REM Patch OPATCH
 REM ####################################################
-REM Change To Patch Directory and Unzip Patch
-REM set PATCHDIR=D:\psoft\patches\CPU-2019-July\software
-cd /d %PATCHDIR%\JDK
-REM set JDKDIR=D:\psoft\java\jdk
-%JDKDir%\bin\jar.exe xvf p18143322_1800_MSWIN-x86-64.zip
 
-REM Install JDK (and wait 180 seconds for install to complete)
-jdk-8u221-windows-x64.exe INSTALLDIR=%JDKDir% /s /L %PATCHDIR%\logs\jdk-8u221-windows-x64_install.log
-timeout 180
-
-REM Check Versions (Should return build 1.8.0_221-b27)
-%JDKDIR%\bin\java -version
-
-REM ####################################################
 REM Patch OPATCH p28186730_139400_Generic.zip
-REM ####################################################
-REM set ORACLE_HOME=D:\psoft\oracle\weblogic
-REM set PATH=%ORACLE_HOME%\OPatch;%PATH%
-REM set PATCHDIR=D:\psoft\patches\CPU-2019-July\software
-REM set JDKDIR=D:\psoft\java\jdk
-cd /d %PATCHDIR%\OPatch
-%JDKDir%\bin\jar.exe xvf p28186730_139400_Generic.zip
+cd /d %CPUDIR%\software\OPatch
+%JDKDIR%\bin\jar.exe xvf p28186730_139400_Generic.zip
 cd 6880880
 java -jar opatch_generic.jar -J-Doracle.installer.oh_admin_acl=true -silent oracle_home=%ORACLE_HOME%
 
-REM ####################################################
 REM Patch OPATCH p29909359_139400_Generic
-REM ####################################################
-REM set ORACLE_HOME=D:\psoft\oracle\weblogic
-REM set PATH=%ORACLE_HOME%\OPatch;%PATH%
-REM set PATCHDIR=D:\psoft\patches\CPU-2019-July\software
-REM set JDKDIR=D:\psoft\java\jdk
-cd /d %PATCHDIR%\OPatch
-%JDKDir%\bin\jar.exe xvf p29909359_139400_Generic.zip
+cd /d %CPUDIR%\software\OPatch
+%JDKDIR%\bin\jar.exe xvf p29909359_139400_Generic.zip
 cd 29909359
 opatch apply -jre %JDKDIR% -oop
 REM opatch rollback -id 29909359
@@ -88,8 +89,8 @@ REM ####################################################
 REM Patch WEBLOGIC
 REM ####################################################
 REM Apply New PSU
-cd /d %PATCHDIR%\WLS
-%JDKDir%\bin\jar.exe xvf p29814665_122130_Generic.zip
-cd %PATCHDIR%\WLS\29814665
+cd /d %CPUDIR%\software\WLS
+%JDKDIR%\bin\jar.exe xvf p29814665_122130_Generic.zip
+cd 29814665
 opatch apply -jre %JDKDIR% -oop
 REM opatch rollback -id 29814665
