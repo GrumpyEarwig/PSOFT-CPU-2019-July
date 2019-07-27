@@ -17,9 +17,6 @@ set CPUFOLDER=CPU-2019-July
 set CPUREPOSITORY=\\am1hrap905\CedarTeam\30-Technical\95-Critical-Patch-Updates-CPUs\%CPUFOLDER%
 set CPUDIR=D:\psoft\patches\%CPUFOLDER%
 
-REM Copy down software from share (zip files only)
-ROBOCOPY /S /E %CPUREPOSITORY% %CPUDIR% *.zip
-
 set ORACLE_HOME=D:\psoft\oracle\weblogic
 set PS_HOME=D:\psoft\ps_home\pt85610
 set JDKDIR=D:\psoft\java\jdk
@@ -40,7 +37,12 @@ REM opatch lsinventory -jre %JDKDIR%
 REM Java
 java -version
 %JDKDIR%\bin\java -version
-%
+
+REM ####################################################
+REM Copy down software from share (zip files only)
+REM ####################################################
+ROBOCOPY /L /S /E %CPUREPOSITORY% %CPUDIR% *.zip
+
 REM ####################################################
 REM Patch JAVA
 REM ####################################################
@@ -52,33 +54,40 @@ cd /d %CPUDIR%\software\JDK
 REM Archive Current Java
 set LOGFILE=%CPUDIR%\logs\java_robocopy.log"
 robocopy /l /mir /log+:%LOGFILE% %JDKDIR% %CPUDIR%\backups\java
+REM compact /c /s %CPUDIR%\backups\java\*
 ren %JDKDIR% %JDKDIR%-delete-me
 
-REM Install JDK (and wait 180 seconds for install to complete)
+REM Install JDK ( ... wait 180 seconds for install to complete ... )
 jdk-8u221-windows-x64.exe INSTALLDIR=%JDKDIR% /s /L %CPUDIR%\logs\jdk-8u221-windows-x64_install.log
 timeout 180
 
-REM Re-Check Version(s) (Should return build 1.8.0_221-b27)
+REM Re-Check Version(s) (Should now return new version)
 %JDKDIR%\bin\java -version
 PS_HOME%\jre\bin\java -version
+
+REM Remove Old Java
+del %JDKDIR%-delete-me
 
 REM ####################################################
 REM Backup WEBLOGIC
 REM ####################################################
-set LOGFILE=%CPUDIR%\logs\weblogic_robocopy.log"
+set LOGFILE=%CPUDIR%\logs\weblogic_robocopy.log
 robocopy /mir /log+:%LOGFILE% %ORACLE_HOME% %CPUDIR%\backups\weblogic
+REM compact /c /s %CPUDIR%\backups\weblogic\*
 
 REM ####################################################
 REM Patch OPATCH
 REM ####################################################
 
-REM Patch OPATCH p28186730_139400_Generic.zip
+REM Patch(1) OPATCH p28186730_139400_Generic.zip / 6880880
+REM Unzip & Apply Patch
 cd /d %CPUDIR%\software\OPatch
 %JDKDIR%\bin\jar.exe xvf p28186730_139400_Generic.zip
 cd 6880880
 java -jar opatch_generic.jar -J-Doracle.installer.oh_admin_acl=true -silent oracle_home=%ORACLE_HOME%
 
-REM Patch OPATCH p29909359_139400_Generic
+REM Patch(2) OPATCH p29909359_139400_Generic / 29909359
+REM Unzip & Apply Patch
 cd /d %CPUDIR%\software\OPatch
 %JDKDIR%\bin\jar.exe xvf p29909359_139400_Generic.zip
 cd 29909359
@@ -88,7 +97,8 @@ REM opatch rollback -id 29909359
 REM ####################################################
 REM Patch WEBLOGIC
 REM ####################################################
-REM Apply New PSU
+
+REM Unzip & Apply Patch
 cd /d %CPUDIR%\software\WLS
 %JDKDIR%\bin\jar.exe xvf p29814665_122130_Generic.zip
 cd 29814665

@@ -113,9 +113,9 @@ java -jar opatch_generic.jar -J-Doracle.installer.oh_admin_acl=true -silent orac
 # opatch rollback -id $Patch_ID
 
 # Run following as ADMIN from a DOS Commmand Window
-cd /d D:\psoft\patches\CPU-2019-July\software\opatch\6880880
-set PATH=D:\psoft\java\jdk\bin;%PATH%
-java -jar opatch_generic.jar -J-Doracle.installer.oh_admin_acl=true -silent oracle_home=D:\psoft\oracle\weblogic
+#cd /d D:\psoft\patches\CPU-2019-July\software\opatch\6880880
+#set PATH=D:\psoft\java\jdk\bin;%PATH%
+#java -jar opatch_generic.jar -J-Doracle.installer.oh_admin_acl=true -silent oracle_home=D:\psoft\oracle\weblogic
 
 
 
