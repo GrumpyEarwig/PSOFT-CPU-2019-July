@@ -14,8 +14,8 @@ REM Initial Setup
 REM ####################################################
 
 set CPUFOLDER=CPU-2019-July
-set CPUREPOSITORY=\\am1hrap905\CedarTeam\30-Technical\95-Critical-Patch-Updates-CPUs\%CPUFOLDER%
 set CPUDIR=D:\psoft\patches\%CPUFOLDER%
+set CPUREPOSITORY=\\am1hrap905\CedarTeam\30-Technical\95-Critical-Patch-Updates-CPUs\%CPUFOLDER%
 
 set ORACLE_HOME=D:\psoft\oracle\weblogic
 set PS_HOME=D:\psoft\ps_home\pt85610
@@ -44,18 +44,26 @@ REM ####################################################
 ROBOCOPY /L /S /E %CPUREPOSITORY% %CPUDIR% *.zip
 
 REM ####################################################
+REM Stop PIA Services
+REM ####################################################
+powershell Get-Service *PIA
+powershell Stop-Service *PIA -Force
+powershell Get-Service *PIA
+
+REM ####################################################
 REM Patch JAVA
 REM ####################################################
 
 REM Change To Patch Directory and Unzip Patch
-cd /d %CPUDIR%\software\JDK
+cd /d %CPUDIR%\software\java
 %JDKDIR%\bin\jar.exe xvf p18143322_1800_MSWIN-x86-64.zip
 
 REM Archive Current Java
-set LOGFILE=%CPUDIR%\logs\java_robocopy.log"
-robocopy /l /mir /log+:%LOGFILE% %JDKDIR% %CPUDIR%\backups\java
+set LOGFILE=%CPUDIR%\logs\java_robocopy.log
+REM robocopy /l /mir                 %JDKDIR% %CPUDIR%\backups\java
+robocopy    /mir /log+:%LOGFILE% %JDKDIR% %CPUDIR%\backups\java
 REM compact /c /s %CPUDIR%\backups\java\*
-ren %JDKDIR% %JDKDIR%-delete-me
+ren %JDKDIR% jdk-delete-me
 
 REM Install JDK ( ... wait 180 seconds for install to complete ... )
 jdk-8u221-windows-x64.exe INSTALLDIR=%JDKDIR% /s /L %CPUDIR%\logs\jdk-8u221-windows-x64_install.log
@@ -63,7 +71,7 @@ timeout 180
 
 REM Re-Check Version(s) (Should now return new version)
 %JDKDIR%\bin\java -version
-PS_HOME%\jre\bin\java -version
+%PS_HOME%\jre\bin\java -version
 
 REM Remove Old Java
 del %JDKDIR%-delete-me
@@ -72,7 +80,8 @@ REM ####################################################
 REM Backup WEBLOGIC
 REM ####################################################
 set LOGFILE=%CPUDIR%\logs\weblogic_robocopy.log
-robocopy /mir /log+:%LOGFILE% %ORACLE_HOME% %CPUDIR%\backups\weblogic
+REM robocopy /L /mir                 %ORACLE_HOME% %CPUDIR%\backups\weblogic
+robocopy    /mir /log+:%LOGFILE% %ORACLE_HOME% %CPUDIR%\backups\weblogic
 REM compact /c /s %CPUDIR%\backups\weblogic\*
 
 REM ####################################################
@@ -104,3 +113,29 @@ cd /d %CPUDIR%\software\WLS
 cd 29814665
 opatch apply -jre %JDKDIR% -oop
 REM opatch rollback -id 29814665
+
+REM ####################################################
+REM List Final Software Versions
+REM ####################################################
+
+REM WebLogic
+opatch version
+opatch lspatches
+REM opatch lsinventory -jre %JDKDIR%
+
+REM Java
+java -version
+%JDKDIR%\bin\java -version
+
+REM ####################################################
+REM Start PIA Services
+REM ####################################################
+powershell Get-Service *PIA
+powershell Start-Service *PIA
+powershell Get-Service *PIA
+
+REM ####################################################
+REM Cleanup
+REM ####################################################
+compact /c /s %CPUDIR%\backups\*
+

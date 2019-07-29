@@ -30,7 +30,7 @@ cmd /c ${Env:JRE}\bin\java.exe -version
 # Backup Directories
 ${Env:CPU}           = 'CPU-2019-July'
 ${Env:CPU_BKP_Dir}   = "D:/psoft/patches/${CPU}/backups"
-cmd /c robocopy /mir 
+#cmd /c robocopy /mir 
 
 rename-item -path ${Env:JRE} -NewName ${Env:JRE}-${Env:CPU_BKP_SFX}
 
