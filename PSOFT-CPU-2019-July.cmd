@@ -41,7 +41,8 @@ java -version
 REM ####################################################
 REM Copy down software from share (zip files only)
 REM ####################################################
-ROBOCOPY /L /S /E %CPUREPOSITORY% %CPUDIR% *.zip
+REM ROBOCOPY /L /S /E %CPUREPOSITORY% %CPUDIR% *.zip
+ROBOCOPY /S /E %CPUREPOSITORY% %CPUDIR% *.zip
 
 REM ####################################################
 REM Stop PIA Services
@@ -74,7 +75,7 @@ REM Re-Check Version(s) (Should now return new version)
 %PS_HOME%\jre\bin\java -version
 
 REM Remove Old Java
-del %JDKDIR%-delete-me
+rmdir /s %JDKDIR%-delete-me
 
 REM ####################################################
 REM Backup WEBLOGIC
